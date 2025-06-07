@@ -41,3 +41,39 @@ def get_ollama_response(model_name: str, messages: list):
         error_message = f"ERROR: Could not connect to the Ollama server. Please ensure it is running.\nDetails: {e}"
         print(error_message) # Also print to console for debugging
         yield error_message
+
+
+def get_ollama_response_non_stream(model_name: str, messages: list) -> (str, float):
+    """
+    Gets a single, complete response from an Ollama model and the response time.
+
+    Args:
+        model_name: The name of the Ollama model to use.
+        messages: The list of messages to send.
+
+    Returns:
+        A tuple containing the full response text (or error) and the response time.
+    """
+    advice_text = ""
+    start_time = time.time()
+    try:
+        response = ollama.chat(
+            model=model_name,
+            messages=messages,
+            stream=False, # The only change needed for a non-streaming call
+        )
+        if 'message' in response and 'content' in response['message']:
+            advice_text = response['message']['content']
+        elif 'error' in response:
+            advice_text = f"ERROR: Ollama error for model '{model_name}'. Details: {response['error']}"
+        else:
+            advice_text = "ERROR: Unknown response format from Ollama."
+
+    except ollama.ResponseError as e:
+        advice_text = f"ERROR: Ollama response error for model '{model_name}'. Details: {e.error}"
+    except Exception as e:
+        advice_text = f"ERROR: Could not connect to the Ollama server. Details: {e}"
+
+    response_time = time.time() - start_time
+    print(f"Non-stream response for {model_name} took {response_time:.2f}s") # For debugging
+    return advice_text, response_time
